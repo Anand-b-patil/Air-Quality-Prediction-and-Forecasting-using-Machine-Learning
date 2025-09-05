@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AQI Prediction</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Air Quality Index (AQI) Predictor</h1>
+
+      {% if error %}
+        <div class="alert error">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/predict">
+        <div class="row">
+          <label>PM2.5</label>
+          <input name="PM2_5" type="number" step="any" value="{{ inputs.PM2_5 if inputs else '' }}" required />
+        </div>
+        <div class="row">
+          <label>PM10</label>
+          <input name="PM10" type="number" step="any" value="{{ inputs.PM10 if inputs else '' }}" required />
+        </div>
+        <div class="row">
+          <label>NO</label>
+          <input name="NO" type="number" step="any" value="{{ inputs.NO if inputs else '' }}" required />
+        </div>
+        <div class="row">
+          <label>NO2</label>
+          <input name="NO2" type="number" step="any" value="{{ inputs.NO2 if inputs else '' }}" required />
+        </div>
+        <div class="row">
+          <label>NOx</label>
+          <input name="NOx" type="number" step="any" value="{{ inputs.NOx if inputs else '' }}" required />
+        </div>
+        <div class="row">
+          <label>NH3</label>
+          <input name="NH3" type="number" step="any" value="{{ inputs.NH3 if inputs else '' }}" required />
+        </div>
+
+        <div class="row">
+          <button type="submit">Predict AQI</button>
+        </div>
+      </form>
+
+      {% if prediction is defined %}
+        <div class="result">
+          <h2>Prediction: {{ prediction }}</h2>
+          <p>Category: <strong>{{ category }}</strong></p>
+        </div>
+      {% endif %}
+
+
+    </div>
+  </body>
+</html>
