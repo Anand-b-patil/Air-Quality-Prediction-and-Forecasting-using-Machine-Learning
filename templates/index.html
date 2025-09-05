@@ -1,58 +1,120 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AQI Prediction</title>
-    <link rel="stylesheet" href="/static/styles.css" />
-  </head>
-  <body>
-    <div class="container">
-      <h1>Air Quality Index (AQI) Predictor</h1>
+<head>
+  <meta charset="UTF-8">
+  <title>🌍 Air Quality Prediction & Forecasting</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+  <div class="max-w-6xl mx-auto py-10 px-6">
+    <!-- Header -->
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-8">
+      🌍 Air Quality Index (AQI) Prediction & Forecasting
+    </h1>
 
-      {% if error %}
-        <div class="alert error">{{ error }}</div>
-      {% endif %}
+    <!-- Grid: Left (Current AQI) | Right (Forecast by Date) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      
+      <!-- Left: AQI Prediction Form -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">🔎 Predict Current AQI</h2>
+        <form action="/predict" method="post" class="grid grid-cols-2 gap-4">
+          <input type="number" step="any" name="PM2_5" placeholder="PM2.5" class="p-2 border rounded" required>
+          <input type="number" step="any" name="PM10" placeholder="PM10" class="p-2 border rounded" required>
+          <input type="number" step="any" name="NO" placeholder="NO" class="p-2 border rounded" required>
+          <input type="number" step="any" name="NO2" placeholder="NO2" class="p-2 border rounded" required>
+          <input type="number" step="any" name="NOx" placeholder="NOx" class="p-2 border rounded" required>
+          <input type="number" step="any" name="NH3" placeholder="NH3" class="p-2 border rounded" required>
+          <div class="col-span-2">
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
+              Predict AQI
+            </button>
+          </div>
+        </form>
 
-      <form method="post" action="/predict">
-        <div class="row">
-          <label>PM2.5</label>
-          <input name="PM2_5" type="number" step="any" value="{{ inputs.PM2_5 if inputs else '' }}" required />
+        {% if prediction %}
+        <div class="mt-6 p-4 bg-green-100 border-l-4 border-green-600 rounded">
+          <h3 class="text-lg font-semibold">Predicted AQI: {{ prediction }} ({{ category }})</h3>
         </div>
-        <div class="row">
-          <label>PM10</label>
-          <input name="PM10" type="number" step="any" value="{{ inputs.PM10 if inputs else '' }}" required />
+        {% elif error %}
+        <div class="mt-6 p-4 bg-red-100 border-l-4 border-red-600 rounded">
+          <h3 class="text-lg font-semibold text-red-700">Error: {{ error }}</h3>
         </div>
-        <div class="row">
-          <label>NO</label>
-          <input name="NO" type="number" step="any" value="{{ inputs.NO if inputs else '' }}" required />
-        </div>
-        <div class="row">
-          <label>NO2</label>
-          <input name="NO2" type="number" step="any" value="{{ inputs.NO2 if inputs else '' }}" required />
-        </div>
-        <div class="row">
-          <label>NOx</label>
-          <input name="NOx" type="number" step="any" value="{{ inputs.NOx if inputs else '' }}" required />
-        </div>
-        <div class="row">
-          <label>NH3</label>
-          <input name="NH3" type="number" step="any" value="{{ inputs.NH3 if inputs else '' }}" required />
-        </div>
+        {% endif %}
+      </div>
 
-        <div class="row">
-          <button type="submit">Predict AQI</button>
-        </div>
-      </form>
-
-      {% if prediction is defined %}
-        <div class="result">
-          <h2>Prediction: {{ prediction }}</h2>
-          <p>Category: <strong>{{ category }}</strong></p>
-        </div>
-      {% endif %}
-
-
+      <!-- Right: Forecast by User Date -->
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">📅 Forecast AQI by Start Date (Next 7 Days)</h2>
+        <label class="block mb-4">
+          <span class="text-gray-600">Select Start Date:</span>
+          <input type="date" id="forecastDate" class="p-2 border rounded w-full mt-2">
+        </label>
+        <button onclick="getForecastByDate()" class="bg-purple-600 text-white px-6 py-2 rounded hover:bg-purple-700 transition">
+          Get Date-based Forecast
+        </button>
+        <div id="date-forecast-result" class="mt-6"></div>
+        <canvas id="forecastDateChart" class="mt-6"></canvas>
+      </div>
     </div>
-  </body>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    async function getForecastByDate() {
+      const date = document.getElementById("forecastDate").value;
+      if (!date) {
+        alert("Please select a date");
+        return;
+      }
+
+      const response = await fetch("/forecast_date", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date })
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        document.getElementById("date-forecast-result").innerHTML =
+          `<p class="text-red-600">${data.error}</p>`;
+        return;
+      }
+
+      // Table
+      let tableHtml = "<table class='table-auto border-collapse border border-gray-400 w-full mt-4'><tr class='bg-gray-200'><th class='border border-gray-400 px-4 py-2'>Date</th><th class='border border-gray-400 px-4 py-2'>Predicted AQI</th></tr>";
+      data.forecasts.forEach(row => {
+        tableHtml += `<tr><td class='border border-gray-400 px-4 py-2'>${row.date}</td><td class='border border-gray-400 px-4 py-2'>${row.forecast_aqi}</td></tr>`;
+      });
+      tableHtml += "</table>";
+      document.getElementById("date-forecast-result").innerHTML = tableHtml;
+
+      // Chart
+      const ctx = document.getElementById("forecastDateChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.forecasts.map(r => r.date),
+          datasets: [{
+            label: "Forecasted AQI",
+            data: data.forecasts.map(r => r.forecast_aqi),
+            borderColor: "green",
+            backgroundColor: "rgba(34,197,94,0.2)",
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true }},
+          scales: {
+            y: { title: { display: true, text: "AQI" }},
+            x: { title: { display: true, text: "Date" }}
+          }
+        }
+      });
+    }
+  </script>
+</body>
 </html>
